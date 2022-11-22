@@ -16,11 +16,13 @@ import (
 	"fyne.io/fyne/container"
 	"fyne.io/fyne/theme"
 	"fyne.io/fyne/widget"
+	"github.com/gonutz/w32/v2"
 	"golang.org/x/sys/windows"
 )
 
 func main() {
 	version := "1.0.0.1"
+	hideConsole()
 	// if not elevated, relaunch by shellexecute with runas verb set
 	if !amAdmin() {
 		runMeElevated()
@@ -48,7 +50,7 @@ func main() {
 			hello.SetText("IP: " + add)
 			adaptador = value
 		})
-		combo.Size().Width = 400
+		//combo.Size().Width = 400
 
 		head := widget.NewGroup("Placa de red", container.NewHBox(container.NewMax(combo), hello))
 
@@ -140,6 +142,23 @@ func runMeElevated() {
 	err := windows.ShellExecute(0, verbPtr, exePtr, argPtr, cwdPtr, showCmd)
 	if err != nil {
 		fmt.Println(err)
+	}
+}
+
+func hideConsole() {
+	console := w32.GetConsoleWindow()
+	if console == 0 {
+		return // no console attached
+	}
+	// If this application is the process that created the console window, then
+	// this program was not compiled with the -H=windowsgui flag and on start-up
+	// it created a console along with the main application window. In this case
+	// hide the console window.
+	// See
+	// http://stackoverflow.com/questions/9009333/how-to-check-if-the-program-is-run-from-a-console
+	_, consoleProcID := w32.GetWindowThreadProcessId(console)
+	if w32.GetCurrentProcessId() == consoleProcID {
+		w32.ShowWindowAsync(console, w32.SW_HIDE)
 	}
 }
 
