@@ -50,44 +50,60 @@ func main() {
 			hello.SetText("IP: " + add)
 			adaptador = value
 		})
-		//combo.Size().Width = 400
 
-		head := widget.NewGroup("Placa de red", container.NewHBox(container.NewMax(combo), hello))
-
-		buttonA := widget.NewButton("Schaaf1",
+		SetDHCP := widget.NewButton("Automatica",
 			func() {
-				go SetIP(adaptador, "11.11.11.252", "255.255.255.128", "11.11.11.1", hello)
+				go SetIP(placas, adaptador, "", "", "", hello, "DHCP")
 			})
-		buttonB := widget.NewButton("Mapa",
+
+		head := widget.NewGroup("Placa de red", container.NewGridWithColumns(3, combo, SetDHCP, hello))
+
+		buttonA := widget.NewButton("SCHAAF1",
 			func() {
-				go SetIP(adaptador, "12.12.12.252", "255.255.255.128", "12.12.12.1", hello)
+				go SetIP(placas, adaptador, "11.11.11.252", "255.255.255.128", "11.11.11.129", hello, "SCHAAF1")
+			})
+		buttonB := widget.NewButton("MAPA",
+			func() {
+				go SetIP(placas, adaptador, "12.12.12.252", "255.255.255.128", "12.12.12.129", hello, "MAPA")
 			})
 		buttonC := widget.NewButton("PC32",
 			func() {
-				go SetIP(adaptador, "13.13.13.252", "255.255.255.128", "13.13.13.1", hello)
+				go SetIP(placas, adaptador, "13.13.13.252", "255.255.255.128", "13.13.13.129", hello, "PC32")
 			})
-		buttonD := widget.NewButton("Schaaf2",
+		buttonD := widget.NewButton("SCHAAF2",
 			func() {
-				go SetIP(adaptador, "14.14.14.252", "255.255.255.128", "14.14.14.1", hello)
+				go SetIP(placas, adaptador, "14.14.14.252", "255.255.255.128", "14.14.14.129", hello, "SCHAAF2")
 			})
-		buttonD4 := widget.NewButton("Schaaf2",
+		buttonD4 := widget.NewButton("DORITOS",
 			func() {
-				go SetIP(adaptador, "14.14.14.252", "255.255.255.128", "14.14.14.1", hello)
+				go SetIP(placas, adaptador, "15.15.15.252", "255.255.255.128", "15.15.15.129", hello, "DORITOS")
 			})
-		buttonD1 := widget.NewButton("Schaaf2",
+		buttonD1 := widget.NewButton("PALI RBS",
 			func() {
-				go SetIP(adaptador, "14.14.14.252", "255.255.255.128", "14.14.14.1", hello)
+				go SetIP(placas, adaptador, "16.16.16.252", "255.255.255.128", "16.16.16.129", hello, "PALI RBS")
 			})
-		buttonD2 := widget.NewButton("Schaaf2",
+		buttonD2 := widget.NewButton("PCFLEX",
 			func() {
-				go SetIP(adaptador, "14.14.14.252", "255.255.255.128", "14.14.14.1", hello)
+				go SetIP(placas, adaptador, "17.17.17.252", "255.255.255.128", "17.17.17.129", hello, "PCFLEX")
 			})
-		buttonD3 := widget.NewButton("Schaaf2",
+		buttonD3 := widget.NewButton("PALITOS3",
 			func() {
-				go SetIP(adaptador, "14.14.14.252", "255.255.255.128", "14.14.14.1", hello)
+				go SetIP(placas, adaptador, "18.18.18.252", "255.255.255.128", "18.18.18.129", hello, "PALITOS3")
+			})
+		buttonD5 := widget.NewButton("FRYPACK",
+			func() {
+				go SetIP(placas, adaptador, "19.19.19.252", "255.255.255.128", "19.19.19.129", hello, "FRYPACK")
+			})
+		buttonD6 := widget.NewButton("HALOILA",
+			func() {
+				go SetIP(placas, adaptador, "24.24.24.252", "255.255.255.128", "24.24.24.129", hello, "HALOILA")
+			})
+		buttonD7 := widget.NewButton("EFLUENTES",
+			func() {
+				go SetIP(placas, adaptador, "34.34.34.252", "255.255.255.128", "34.34.34.129", hello, "EFLUENTES")
 			})
 
-		ss := container.NewVBox(head, widget.NewSeparator(), buttonA, buttonB, buttonC, buttonD, buttonD1, buttonD2, buttonD3, buttonD4)
+		ss := container.NewVBox(head, widget.NewSeparator(), buttonA, buttonB, buttonC, buttonD, buttonD1, buttonD2, buttonD3, buttonD4, buttonD5, buttonD6, buttonD7)
 
 		scroll := container.NewScroll(ss)
 		scroll.SetMinSize(fyne.NewSize(800, 600))
@@ -97,7 +113,7 @@ func main() {
 	}
 }
 
-func SetIP(adaptador string, IP string, mask string, gateway string, H *widget.Label) {
+func SetIP(placas []string, adaptador string, IP string, mask string, gateway string, H *widget.Label, linea string) {
 	if adaptador == "" {
 		H.SetText("")
 		time.Sleep(200 * time.Millisecond)
@@ -111,19 +127,59 @@ func SetIP(adaptador string, IP string, mask string, gateway string, H *widget.L
 		time.Sleep(200 * time.Millisecond)
 		H.SetText("Seleccione un placa de red")
 	} else {
+		H.SetText("Setting IP")
+		if IP != "" {
+			for _, v := range placas {
+				fmt.Println(v)
+				if v != adaptador {
+					add, _ := GetInterfaceIpv4Addr(v)
+					if add == IP {
+						H.SetText("La direccion ya existe en -> " + v)
+						return
+					}
+				}
+			}
+		}
 
-		H.SetText("Setting IP...")
-		cmd := exec.Command("netsh", "interface", "ipv4", "set", "address", "name="+adaptador, "static", IP, mask, gateway)
+		// defer func() {
+		// 	if r := recover(); r != nil {
+		// 		fmt.Println("Recovered. Error:\n", r)
+		// 	}
+		// }()
+
+		var cmd *exec.Cmd
+		if IP == "" {
+			cmd = exec.Command("netsh", "interface", "ipv4", "set", "address", "name=\""+adaptador+"\"", "source=dhcp")
+		} else {
+			cmd = exec.Command("netsh", "interface", "ipv4", "set", "address", "\""+adaptador+"\"", "static", IP, mask, gateway, "1")
+		}
 		err := cmd.Run()
 		if err != nil {
-			log.Fatal(err)
+			//log.Fatal(err)
 			fmt.Println(err)
 		}
+
+		time.Sleep(1 * time.Second)
+		H.SetText("Setting IP.")
+		time.Sleep(1 * time.Second)
+		H.SetText("Setting IP..")
+		time.Sleep(1 * time.Second)
+		H.SetText("Setting IP...")
 		time.Sleep(1 * time.Second)
 
 		add, err := GetInterfaceIpv4Addr(adaptador)
-		H.SetText("IP: " + add)
+		H.SetText("IP: " + add + " -> " + linea)
 	}
+}
+
+func amAdmin() bool {
+	_, err := os.Open("\\\\.\\PHYSICALDRIVE0")
+	if err != nil {
+		fmt.Println("admin no")
+		return false
+	}
+	fmt.Println("admin yes")
+	return true
 }
 
 func runMeElevated() {
@@ -160,16 +216,6 @@ func hideConsole() {
 	if w32.GetCurrentProcessId() == consoleProcID {
 		w32.ShowWindowAsync(console, w32.SW_HIDE)
 	}
-}
-
-func amAdmin() bool {
-	_, err := os.Open("\\\\.\\PHYSICALDRIVE0")
-	if err != nil {
-		fmt.Println("admin no")
-		return false
-	}
-	fmt.Println("admin yes")
-	return true
 }
 
 func GetInterfaceIpv4Addr(interfaceName string) (addr string, err error) {
